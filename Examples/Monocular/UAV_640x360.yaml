@@ -1,0 +1,70 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 446.752
+Camera.fy: 447.2
+Camera.cx: 318.1
+Camera.cy: 190.0
+
+Camera.k1: 0.0798
+Camera.k2: -0.1867
+Camera.p1: 0.0
+Camera.p2: 0.0
+
+Camera.width: 640
+Camera.height: 360
+
+# Camera frames per second 
+Camera.fps: 7.5
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+#--------------------------------------------------------------------------------------------
+# SuperPoint / Feature Extractor Parameters
+# Note: YAML keys use "ORBextractor" prefix for backward compatibility with ORB-SLAM3 codebase
+#--------------------------------------------------------------------------------------------
+
+# Number of features per image
+ORBextractor.nFeatures: 2500
+
+# Scale factor between levels in the scale pyramid
+ORBextractor.scaleFactor: 1.20
+
+# Number of levels in the scale pyramid (1 = no pyramid, recommended for SuperPoint)
+ORBextractor.nLevels: 1
+
+# SuperPoint confidence thresholds
+ORBextractor.iniThFAST: 0.160
+ORBextractor.minThFAST: 0.005
+
+# SuperPoint FP16 inference (0: disabled, 1: enabled - requires CUDA)
+SuperPoint.useFP16: 1
+
+# LightGlue learned matcher
+LightGlue.model_path: "lightglue.pt"
+LightGlue.useFP16: 0
+
+# Place recognition
+PlaceRecognition.model_path: "cosplace.pt"
+PlaceRecognition.useFP16: 0
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
+

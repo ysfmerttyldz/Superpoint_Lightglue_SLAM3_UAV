@@ -1,0 +1,44 @@
+build/
+lib/
+*.pyc
+__pycache__/
+mappointsperframe.txt
+matchesperframe.txt
+CameraTrajectory.txt
+KeyFrameTrajectory.txt
+*.so
+
+# Build artifacts
+Thirdparty/DBoW3/build/
+Thirdparty/DBoW3/lib/
+Thirdparty/g2o/build/
+Thirdparty/g2o/lib/
+Examples/Monocular/mono_webcam
+Examples/Monocular/mono_live
+Examples/Monocular/mono_euroc
+tools/convert_vocab
+
+
+# Dataset folders
+Examples/Monocular/MH_01_easy
+Examples/Monocular/MH_02_easy
+Examples/Monocular/MH_03_medium
+Examples/Monocular/MH_04_difficult
+Examples/Monocular/MH_05_difficult
+evaluation/results_improved
+evaluation/results_tuned_v1
+# Vocabulary files (generate locally with convert_vocab)
+Vocabulary/superpoint_voc.yml
+Vocabulary/superpoint_voc.dbow3
+# Model weights
+lightglue.pt
+superpoint.pt
+cosplace.pt
+netvlad.pt
+*.pt
+
+README.md
+Datasets
+
+# IDE
+*.code-workspace

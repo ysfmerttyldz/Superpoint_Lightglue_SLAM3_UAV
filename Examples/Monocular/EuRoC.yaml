@@ -1,0 +1,76 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
+
+# Camera calibration and distortion parameters (OpenCV) 
+Camera.fx: 458.654
+Camera.fy: 457.296
+Camera.cx: 367.215
+Camera.cy: 248.375
+
+Camera.k1: -0.28340811
+Camera.k2: 0.07395907
+Camera.p1: 0.00019359
+Camera.p2: 1.76187114e-05
+
+Camera.width: 480
+Camera.height: 360
+
+# Camera frames per second 
+Camera.fps: 20.0
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+#--------------------------------------------------------------------------------------------
+# SuperPoint / Feature Extractor Parameters
+# Note: YAML keys use "ORBextractor" prefix for backward compatibility with ORB-SLAM3 codebase
+#--------------------------------------------------------------------------------------------
+
+# Number of features per image
+ORBextractor.nFeatures: 800
+
+# Scale factor between levels in the scale pyramid
+ORBextractor.scaleFactor: 1.2
+
+# Number of levels in the scale pyramid (1 = no pyramid, recommended for SuperPoint)
+ORBextractor.nLevels: 1
+
+# SuperPoint confidence thresholds
+# Image is divided in a grid. At each cell, keypoints are extracted imposing a minimum confidence.
+# First iniThFAST is applied. If no keypoints are detected, minThFAST is used as fallback.
+# Lower these values if your images have low contrast or few features.
+ORBextractor.iniThFAST: 0.155
+ORBextractor.minThFAST: 0.055
+
+# SuperPoint FP16 inference (0: disabled, 1: enabled - requires CUDA)
+SuperPoint.useFP16: 1
+
+# LightGlue learned matcher (optional - leave model_path empty to use brute-force L2)
+# Export with: python scripts/export_lightglue.py --output lightglue.pt
+LightGlue.model_path: "lightglue.pt"
+LightGlue.useFP16: 0
+
+# Learned place recognition for loop closing (optional - falls back to DBoW3)
+# Supports NetVLAD, CosPlace, or any model that outputs a global image descriptor.
+# Export with: python scripts/export_place_recognition.py --output netvlad.pt
+PlaceRecognition.model_path: "cosplace.pt"
+PlaceRecognition.useFP16: 0
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#---------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
+
+
