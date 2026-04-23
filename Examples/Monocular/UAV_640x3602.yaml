@@ -6,13 +6,13 @@
 Camera.type: "PinHole"
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 446.752
-Camera.fy: 447.2
-Camera.cx: 318.1
-Camera.cy: 190.0
+Camera.fx: 463.233
+Camera.fy: 462.373
+Camera.cx: 318.000
+Camera.cy: 186.297
 
-Camera.k1: 0.0798
-Camera.k2: -0.1867
+Camera.k1: 0.1378
+Camera.k2: -0.2564
 Camera.p1: 0.0
 Camera.p2: 0.0
 
@@ -34,7 +34,7 @@ Camera.RGB: 1
 ORBextractor.nFeatures: 2000
 
 # Scale factor between levels in the scale pyramid
-ORBextractor.scaleFactor: 1.20
+ORBextractor.scaleFactor: 1.2
 
 # Number of levels in the scale pyramid (1 = no pyramid, recommended for SuperPoint)
 ORBextractor.nLevels: 1

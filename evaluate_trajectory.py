@@ -125,22 +125,59 @@ def load_ground_truth(filepath):
 
 
 def align_trajectories(cam_timestamps, cam_positions, cam_quaternions, 
-                       gt_frames, gt_positions):
-    """Find common frames and align trajectories"""
+                       gt_frames, gt_positions, ratio=None):
+    """
+    Find common frames and align trajectories
+    
+    Args:
+        ratio: Frame mapping ratio. If provided, camera frame i maps to GT frame i*ratio
+               Example: ratio=2 means cam_frame_10 → gt_frame_20
+    """
     print("\n🔗 Aligning trajectories...")
     
     cam_frames = cam_timestamps.astype(int)
-    common_frames = np.intersect1d(gt_frames, cam_frames)
     
-    if len(common_frames) == 0:
-        print("ERROR: No common frames found!")
-        sys.exit(1)
-    
-    print(f"   ✓ Common frames: {len(common_frames)} (frame {common_frames[0]} → {common_frames[-1]})")
-    
-    # Align data
-    gt_idx = np.array([np.where(gt_frames == f)[0][0] for f in common_frames])
-    cam_idx = np.array([np.where(cam_frames == f)[0][0] for f in common_frames])
+    if ratio is not None:
+        print(f"   ✓ Using frame ratio: {ratio} (cam_frame_i → gt_frame_{ratio}*i)")
+        
+        # Map camera frames to GT frames using ratio
+        mapped_gt_frames = (cam_frames * ratio).astype(int)
+        
+        # Find which mapped frames exist in GT
+        valid_mask = np.isin(mapped_gt_frames, gt_frames)
+        valid_cam_frames = cam_frames[valid_mask]
+        valid_mapped_gt_frames = mapped_gt_frames[valid_mask]
+        
+        if len(valid_cam_frames) == 0:
+            print(f"ERROR: No frames found with ratio {ratio}!")
+            print(f"Camera frames: {cam_frames[0]} → {cam_frames[-1]}")
+            print(f"Mapped GT frames: {mapped_gt_frames[0]} → {mapped_gt_frames[-1]}")
+            print(f"GT frame range: {gt_frames[0]} → {gt_frames[-1]}")
+            sys.exit(1)
+        
+        print(f"   ✓ Matched frames: {len(valid_cam_frames)}")
+        print(f"   ✓ Camera: {valid_cam_frames[0]} → {valid_cam_frames[-1]}")
+        print(f"   ✓ GT (mapped): {valid_mapped_gt_frames[0]} → {valid_mapped_gt_frames[-1]}")
+        
+        # Get indices
+        cam_idx = np.where(valid_mask)[0]
+        gt_idx = np.array([np.where(gt_frames == f)[0][0] for f in valid_mapped_gt_frames])
+        
+        common_frames = valid_cam_frames
+        
+    else:
+        # Original behavior: direct frame matching
+        common_frames = np.intersect1d(gt_frames, cam_frames)
+        
+        if len(common_frames) == 0:
+            print("ERROR: No common frames found!")
+            sys.exit(1)
+        
+        print(f"   ✓ Common frames: {len(common_frames)} (frame {common_frames[0]} → {common_frames[-1]})")
+        
+        # Align data
+        gt_idx = np.array([np.where(gt_frames == f)[0][0] for f in common_frames])
+        cam_idx = np.array([np.where(cam_frames == f)[0][0] for f in common_frames])
     
     gt_pos_aligned = gt_positions[gt_idx]
     cam_pos_aligned = cam_positions[cam_idx]
@@ -425,8 +462,8 @@ Frames:      {len(common_frames):,}
 
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python evaluate_trajectory.py <camera_trajectory> <ground_truth>")
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
+        print("Usage: python evaluate_trajectory.py <camera_trajectory> <ground_truth> [ratio]")
         print("\n📋 Supported Formats:")
         print("\nCamera Trajectory:")
         print("  1. TUM format (8 cols):    timestamp tx ty tz qx qy qz qw")
@@ -435,13 +472,28 @@ def main():
         print("  1. CSV with header:        frame_numbers,translation_x,translation_y,translation_z")
         print("  2. TUM format (8 cols):    timestamp tx ty tz qx qy qz qw")
         print("  3. Simple format (4 cols): frame_id tx ty tz")
+        print("\n🔢 Frame Ratio (Optional):")
+        print("  If provided, maps camera frame i to GT frame i*ratio")
+        print("  Example: ratio=2 means cam_frame_10 → gt_frame_20")
         print("\n💡 Examples:")
         print("  python evaluate_trajectory.py CameraTrajectory.txt GT_Translation.csv")
         print("  python evaluate_trajectory.py estimate.txt groundtruth.txt")
+        print("  python evaluate_trajectory.py estimate.txt groundtruth.txt 2")
+        print("  python evaluate_trajectory.py estimate.txt groundtruth.txt 0.5")
         sys.exit(1)
     
     cam_file = sys.argv[1]
     gt_file = sys.argv[2]
+    ratio = None
+    
+    # Parse ratio if provided
+    if len(sys.argv) == 4:
+        try:
+            ratio = float(sys.argv[3])
+            print(f"\n🔢 Frame ratio specified: {ratio}")
+        except ValueError:
+            print(f"ERROR: Invalid ratio '{sys.argv[3]}'. Must be a number.")
+            sys.exit(1)
     
     # Check files exist
     if not Path(cam_file).exists():
@@ -463,7 +515,7 @@ def main():
     # Align trajectories
     timestamps, gt_pos_aligned, cam_pos_aligned, cam_quat_aligned, common_frames = \
         align_trajectories(cam_timestamps, cam_positions, cam_quaternions, 
-                          gt_frames, gt_positions)
+                          gt_frames, gt_positions, ratio=ratio)
     
     # Calculate RMSE
     results = calculate_rmse(gt_pos_aligned, cam_pos_aligned, cam_quat_aligned, timestamps)
