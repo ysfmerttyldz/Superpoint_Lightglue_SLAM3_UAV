@@ -38,6 +38,9 @@ cosplace.pt
 netvlad.pt
 *.pt
 
+Vocabulary/*.gz
+Vocabulary/*.yml.gz
+
 README.md
 Datasets
 Vocabulary
