@@ -1,0 +1,62 @@
+%YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
+
+# Camera calibration and distortion parameters (OpenCV) 
+# FocalLength [fx fy] -> 731.7965, 732.0172
+Camera.fx: 731.7965
+Camera.fy: 732.0172
+
+# PrincipalPoint [cx cy] -> 319.2367, 251.2424
+Camera.cx: 319.2367
+Camera.cy: 251.2424
+
+# Distortion parameters
+# RadialDistortion [k1 k2] -> -0.3507, 0.1137
+Camera.k1: -0.3507
+Camera.k2: 0.1137
+# TangentialDistortion [p1 p2] -> 0, 0
+Camera.p1: 0.0
+Camera.p2: 0.0
+
+# ImageSize [Height Width] -> [512 640]
+Camera.width: 640
+Camera.height: 512
+
+# Camera frames per second 
+Camera.fps: 7.5
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+#--------------------------------------------------------------------------------------------
+# SuperPoint / Feature Extractor Parameters
+#--------------------------------------------------------------------------------------------
+ORBextractor.nFeatures: 3000
+ORBextractor.scaleFactor: 1.30
+ORBextractor.nLevels: 6
+ORBextractor.iniThFAST: 0.24
+ORBextractor.minThFAST: 0.04
+SuperPoint.useFP16: 1
+
+LightGlue.model_path: "thermal_lightglue.pt"
+LightGlue.useFP16: 0
+
+PlaceRecognition.model_path: "cosplace.pt"
+PlaceRecognition.useFP16: 0
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3
+Viewer.ViewpointX: 0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500

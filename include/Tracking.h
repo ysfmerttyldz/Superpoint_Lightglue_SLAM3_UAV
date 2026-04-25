@@ -334,9 +334,13 @@ protected:
     int initID, lastID;
 
     cv::Mat mTlr;
-
 private:
-    std::ofstream mImmediatePoseFile;
+    int TriangulateTemporalPointsFromOpticalFlow(
+    const std::vector<cv::Point2f>& prevPts,
+    const std::vector<cv::Point2f>& currPts,
+    const std::vector<uchar>& statusFwd,
+    const std::vector<int>& prevIndices,
+    const std::vector<int>& validOrigIndices);
 
 public:
     cv::Mat mImRight;

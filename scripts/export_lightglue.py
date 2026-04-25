@@ -35,7 +35,7 @@ class LightGlueExport(nn.Module):
     def __init__(self):
         super().__init__()
         # Disable dynamic features for traceability
-        self.matcher = LightGlueOrig(features="superpoint", depth_confidence=-1, width_confidence=-1)
+        self.matcher = LightGlueOrig(features="superpoint", depth_confidence=-1, width_confidence=-1,filter_threshold=0.003)
         self.matcher.eval()
 
     def forward(
@@ -84,21 +84,35 @@ def main():
     model = LightGlueExport().to(args.device)
     model.eval()
 
-    # Example inputs for tracing
-    N, M = 200, 200
+    # =====================================================================
+    # CRITICAL FIX: Trace with dimensions matching your actual workload.
+    #
+    # torch.jit.trace "bakes in" tensor shapes for some operations
+    # (attention masks, positional encodings, etc.). If you trace with
+    # N=200 but run with N=2500 at runtime, the model silently produces
+    # garbage (0 matches).
+    #
+    # For thermal images with SuperPoint + CLAHE, keypoint counts
+    # typically range from 1500-3500. We trace with N=M=2000 which
+    # covers most cases. Combined with the C++ side MAX_KP=1500 cap,
+    # this ensures the model always receives inputs within its
+    # traced range.
+    # =====================================================================
+    N, M = 2000, 2000  # <-- WAS 200,200 — this was the root cause
+    
     example_kpts0 = torch.randn(1, N, 2, device=args.device)
     example_kpts1 = torch.randn(1, M, 2, device=args.device)
     example_desc0 = torch.randn(1, N, 256, device=args.device)
     example_desc1 = torch.randn(1, M, 256, device=args.device)
 
     # Warmup forward pass to verify
-    print("Running warmup forward pass...")
+    print(f"Running warmup forward pass with N={N}, M={M}...")
     with torch.no_grad():
         matches, scores = model(example_kpts0, example_kpts1, example_desc0, example_desc1)
     print(f"  Warmup: {matches.shape[0]} matches found (shape: {matches.shape})")
 
     # Trace the model
-    print("Tracing model with torch.jit.trace...")
+    print(f"Tracing model with torch.jit.trace (N={N}, M={M})...")
     with torch.no_grad():
         traced = torch.jit.trace(
             model,
@@ -109,13 +123,24 @@ def main():
     traced.save(args.output)
     print(f"LightGlue model exported to: {args.output}")
 
-    # Verify exported model
-    print("Verifying exported model...")
+    # Verify exported model at MULTIPLE sizes
+    print("Verifying exported model at multiple keypoint counts...")
     loaded = torch.jit.load(args.output, map_location=args.device)
-    with torch.no_grad():
-        m2, s2 = loaded(example_kpts0, example_kpts1, example_desc0, example_desc1)
-    print(f"  Verification: {m2.shape[0]} matches, scores range [{s2.min():.3f}, {s2.max():.3f}]")
-    print("Export successful!")
+    
+    test_sizes = [200, 500, 1000, 1500, 2000]
+    for sz in test_sizes:
+        kp0 = torch.randn(1, sz, 2, device=args.device)
+        kp1 = torch.randn(1, sz, 2, device=args.device)
+        d0 = torch.randn(1, sz, 256, device=args.device)
+        d1 = torch.randn(1, sz, 256, device=args.device)
+        with torch.no_grad():
+            m, s = loaded(kp0, kp1, d0, d1)
+        status = "OK" if m.shape[0] > 0 else "WARN: 0 matches (random data, may be normal)"
+        print(f"  N=M={sz:>5d}: {m.shape[0]:>4d} matches  [{status}]")
+
+    print("\nExport successful!")
+    print(f"\nIMPORTANT: Also add a MAX_KP=1500 cap in LightGlue.cc::match()")
+    print(f"to ensure runtime keypoint counts never exceed the traced size.")
 
 
 if __name__ == "__main__":

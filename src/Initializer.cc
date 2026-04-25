@@ -114,7 +114,7 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
 
     //cout << "6" << endl;
 
-    float minParallax = 1.0; // 1.0 originally
+    float minParallax = 0.5; // 1.0 originally
 
     cv::Mat K = static_cast<Pinhole*>(mpCamera)->toK();
     // Try to reconstruct from homography or fundamental depending on the ratio (0.40-0.45)

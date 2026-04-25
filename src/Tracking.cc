@@ -137,17 +137,6 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 
     mnNumDataset = 0;
 
-    mImmediatePoseFile.open("immediate_poses.txt");
-    if(mImmediatePoseFile.is_open())
-    {
-        std::cout << "[SP_SLAM3] Immediate pose logger enabled" << std::endl;
-        std::cout << "[SP_SLAM3] Output: immediate_poses.txt (format: frame_id x y z)" << std::endl;
-    }
-    else
-    {
-        std::cerr << "[SP_SLAM3] ERROR: Cannot open immediate_poses.txt!" << std::endl;
-    }
-
     if(!b_parse_cam || !b_parse_orb || !b_parse_imu)
     {
         std::cerr << "**ERROR in the config file, the format is not correct**" << std::endl;
@@ -179,13 +168,6 @@ Tracking::~Tracking()
 #ifdef SAVE_TIMES
     f_track_times.close();
 #endif
-
-    if(mImmediatePoseFile.is_open())
-    {
-        mImmediatePoseFile.close();
-        std::cout << "[SP_SLAM3] Immediate poses file closed." << std::endl;
-    } 
-
 }
 
 bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
@@ -1744,22 +1726,7 @@ void Tracking::Track()
 
         if(!mCurrentFrame.mpReferenceKF)
             mCurrentFrame.mpReferenceKF = mpReferenceKF;
-	
-	if(bOK && !mCurrentFrame.mTcw.empty() && mImmediatePoseFile.is_open())
-	{
-    		cv::Mat Rcw = mCurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
-    		cv::Mat tcw = mCurrentFrame.mTcw.rowRange(0,3).col(3);
-    		cv::Mat Rwc = Rcw.t();
-    		cv::Mat twc = -Rwc * tcw;
-    
-    		mImmediatePoseFile << mCurrentFrame.mnId << " "
-                      << std::setprecision(10)
-                      << twc.at<float>(0) << " "
-                      << twc.at<float>(1) << " "
-                      << twc.at<float>(2) << std::endl;
-	}
 
-	
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
         {
@@ -2373,9 +2340,9 @@ bool Tracking::TrackReferenceKeyFrame()
 
     int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
 
-    if(nmatches<15)
+    if(nmatches<10)
     {
-        cout << "TRACK_REF_KF: Less than 15 matches!!\n";
+        cout << "TRACK_REF_KF: Less than 10 matches!!\n";
         return false;
     }
 
@@ -2492,9 +2459,9 @@ void Tracking::UpdateLastFrame()
 
 bool Tracking::TrackWithMotionModel()
 {
+    ORBmatcher matcher(0.75,true);
     // Update last frame pose according to its reference keyframe
     // Create "visual odometry" points if in Localization Mode
-    ORBmatcher matcher(0.75,true);
     UpdateLastFrame();
 
     if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
@@ -2530,6 +2497,7 @@ bool Tracking::TrackWithMotionModel()
                     mLastFrame.mvKeysUn, mLastFrame.mDescriptors,
                     mCurrentFrame.mvKeysUn, mCurrentFrame.mDescriptors,
                     imgSize);
+		std::cerr << "[DEBUG-LG-RESULT] matches=" << lgMatches.size();
             } catch (...) {
                 lgMatches.clear();
             }
@@ -2546,10 +2514,12 @@ bool Tracking::TrackWithMotionModel()
                     mCurrentFrame.mvpMapPoints[m.idx1] = pMP;
                     nmatches++;
                 }
+
+                if (nmatches >= 5)
+                    bLightGlueUsed = true;
             }
         }
     }
-
     if (!bLightGlueUsed)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
@@ -2559,20 +2529,18 @@ bool Tracking::TrackWithMotionModel()
         if(mSensor==System::STEREO)
             th=7;
         else
-            th=15;
+            th=25;
 
         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
 
-        if(nmatches<20)
+        if(nmatches<5)
         {
             fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
             nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th+10,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
         }
     }
 
-
-
-    if(nmatches<20)
+    if(nmatches<5)
     {
         if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO)
             return true;
@@ -2611,8 +2579,8 @@ bool Tracking::TrackWithMotionModel()
 
     if(mbOnlyTracking)
     {
-        mbVO = nmatchesMap<10;
-        return nmatches>20;
+        mbVO = nmatchesMap<5;
+        return nmatches>10;
     }
 
     if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO)

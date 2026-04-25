@@ -40,15 +40,16 @@ ORBextractor.scaleFactor: 1.20
 ORBextractor.nLevels: 1
 
 # SuperPoint confidence thresholds
-ORBextractor.iniThFAST: 0.150
-ORBextractor.minThFAST: 0.004
+ORBextractor.iniThFAST: 0.155
+ORBextractor.minThFAST: 0.005
 
 # SuperPoint FP16 inference (0: disabled, 1: enabled - requires CUDA)
 SuperPoint.useFP16: 1
 
 # LightGlue learned matcher
-LightGlue.model_path: "lightgdlue.pt"
+LightGlue.model_path: "lightglue.pt"
 LightGlue.useFP16: 0
+
 
 # Place recognition
 PlaceRecognition.model_path: "cosplace.pt"

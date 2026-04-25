@@ -31,6 +31,7 @@ LightGlue::LightGlue(const std::string &model_path, bool use_cuda, bool use_fp16
 torch::Tensor LightGlue::normalizeKeypoints(const std::vector<cv::KeyPoint> &kpts,
                                               const cv::Size &image_size)
 {
+    // NOT USED ANYMORE — kept for API compatibility
     auto opts = torch::TensorOptions().dtype(torch::kFloat32);
     torch::Tensor tensor = torch::zeros({(long)kpts.size(), 2}, opts);
     auto accessor = tensor.accessor<float, 2>();
@@ -39,7 +40,6 @@ torch::Tensor LightGlue::normalizeKeypoints(const std::vector<cv::KeyPoint> &kpt
     float h = (float)image_size.height;
 
     for (size_t i = 0; i < kpts.size(); i++) {
-        // Normalize to [-1, 1]
         accessor[i][0] = 2.0f * kpts[i].pt.x / w - 1.0f;
         accessor[i][1] = 2.0f * kpts[i].pt.y / h - 1.0f;
     }
@@ -70,16 +70,58 @@ std::vector<LightGlueMatch> LightGlue::match(
     if (!mbLoaded || kpts0.empty() || kpts1.empty())
         return matches;
 
+    // ================================================================
+    // Hard cap: traced model boyutunu asmamasi icin keypoint siniri.
+    // export_lightglue.py'de N,M=2000 ile trace edildiyse
+    // burada MAX_KP=1500 guvenli bir ust sinir.
+    // ================================================================
+    const int MAX_KP = 1500;
+
+    std::vector<cv::KeyPoint> kpts0_use = kpts0;
+    std::vector<cv::KeyPoint> kpts1_use = kpts1;
+    cv::Mat desc0_use = desc0;
+    cv::Mat desc1_use = desc1;
+
+    if ((int)kpts0_use.size() > MAX_KP) {
+        kpts0_use.resize(MAX_KP);
+        desc0_use = desc0.rowRange(0, MAX_KP).clone();
+    }
+    if ((int)kpts1_use.size() > MAX_KP) {
+        kpts1_use.resize(MAX_KP);
+        desc1_use = desc1.rowRange(0, MAX_KP).clone();
+    }
+
     // Serialize all GPU inference calls across threads
     std::lock_guard<std::mutex> lock(getInferenceMutex());
 
     torch::NoGradGuard no_grad;
 
-    // Prepare inputs
-    auto kp0_tensor = normalizeKeypoints(kpts0, image_size).unsqueeze(0).to(mDevice);  // [1, N, 2]
-    auto kp1_tensor = normalizeKeypoints(kpts1, image_size).unsqueeze(0).to(mDevice);  // [1, M, 2]
-    auto desc0_tensor = descriptorsToTensor(desc0).unsqueeze(0).to(mDevice);            // [1, N, 256]
-    auto desc1_tensor = descriptorsToTensor(desc1).unsqueeze(0).to(mDevice);            // [1, M, 256]
+    // ================================================================
+    // FIX: Send raw pixel coordinates — LightGlue model has its own
+    // normalize_keypoints() inside. Previously we were normalizing
+    // to [-1,1] here AND the model was normalizing again, causing
+    // double normalization that broke matching at higher kp counts.
+    // ================================================================
+    auto opts = torch::TensorOptions().dtype(torch::kFloat32);
+    torch::Tensor kp0_raw = torch::zeros({(long)kpts0_use.size(), 2}, opts);
+    torch::Tensor kp1_raw = torch::zeros({(long)kpts1_use.size(), 2}, opts);
+    {
+        auto acc0 = kp0_raw.accessor<float, 2>();
+        for (size_t i = 0; i < kpts0_use.size(); i++) {
+            acc0[i][0] = kpts0_use[i].pt.x;
+            acc0[i][1] = kpts0_use[i].pt.y;
+        }
+        auto acc1 = kp1_raw.accessor<float, 2>();
+        for (size_t i = 0; i < kpts1_use.size(); i++) {
+            acc1[i][0] = kpts1_use[i].pt.x;
+            acc1[i][1] = kpts1_use[i].pt.y;
+        }
+    }
+    auto kp0_tensor = kp0_raw.unsqueeze(0).to(mDevice);  // [1, N, 2]
+    auto kp1_tensor = kp1_raw.unsqueeze(0).to(mDevice);  // [1, M, 2]
+
+    auto desc0_tensor = descriptorsToTensor(desc0_use).unsqueeze(0).to(mDevice);  // [1, N, 256]
+    auto desc1_tensor = descriptorsToTensor(desc1_use).unsqueeze(0).to(mDevice);  // [1, M, 256]
 
     if (mbFP16 && mDevice.is_cuda()) {
         kp0_tensor = kp0_tensor.to(torch::kFloat16);
@@ -89,7 +131,6 @@ std::vector<LightGlueMatch> LightGlue::match(
     }
 
     // Forward pass
-    // Expected TorchScript interface: forward(kpts0, kpts1, desc0, desc1) -> (matches, scores)
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(kp0_tensor);
     inputs.push_back(kp1_tensor);
@@ -99,7 +140,7 @@ std::vector<LightGlueMatch> LightGlue::match(
     try {
         auto output = mModel.forward(inputs);
 
-        // Parse output: expect a tuple of (match_indices [K, 2], match_scores [K])
+        // Parse output: tuple of (match_indices [K, 2], match_scores [K])
         auto output_tuple = output.toTuple();
         auto match_indices = output_tuple->elements()[0].toTensor().to(torch::kCPU).to(torch::kInt32);
         auto match_scores = output_tuple->elements()[1].toTensor().to(torch::kCPU).to(torch::kFloat32);

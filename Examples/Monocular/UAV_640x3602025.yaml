@@ -40,8 +40,8 @@ ORBextractor.scaleFactor: 1.2
 ORBextractor.nLevels: 1
 
 # SuperPoint confidence thresholds
-ORBextractor.iniThFAST: 0.050
-ORBextractor.minThFAST: 0.05
+ORBextractor.iniThFAST: 0.155
+ORBextractor.minThFAST: 0.005
 
 # SuperPoint FP16 inference (0: disabled, 1: enabled - requires CUDA)
 SuperPoint.useFP16: 1

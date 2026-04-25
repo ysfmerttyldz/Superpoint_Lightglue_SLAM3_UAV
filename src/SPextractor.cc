@@ -524,6 +524,10 @@ void SPextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoi
                 kp.pt *= scale;
         }
         _keypoints.insert(_keypoints.end(), keypoints.begin(), keypoints.end());
+	std::cerr << "[DEBUG-EXTRACT] nkeypoints=" << _keypoints.size()
+          << " desc_rows=" << (nkeypoints > 0 ? descriptors.rows : 0)
+          << " desc_cols=" << (nkeypoints > 0 ? descriptors.cols : 0)
+          << " desc_type=" << (nkeypoints > 0 ? descriptors.type() : -1) << std::endl;
     }
 }
 
