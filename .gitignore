@@ -18,7 +18,7 @@ Examples/Monocular/mono_live
 Examples/Monocular/mono_euroc
 tools/convert_vocab
 
-
+*Zone.Identifier
 # Dataset folders
 Examples/Monocular/MH_01_easy
 Examples/Monocular/MH_02_easy
