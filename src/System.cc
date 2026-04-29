@@ -441,7 +441,7 @@ void System::Shutdown()
     }
 
     if(mpViewer)
-        pangolin::BindToContext("SP_SLAM3: Map Viewer");
+        pangolin::BindToContext("SLAM: Map Viewer");
 }
 
 
