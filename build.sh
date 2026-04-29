@@ -1,11 +1,4 @@
-#!/bin/bash
-# SP-SLAM3 Build Script for Ubuntu 20.04
-# Usage: bash build.sh [--no-cuda] [--libtorch-path /path/to/libtorch]
-#
-# Prerequisites for GPU support:
-#   NVIDIA driver + CUDA toolkit must be installed before running this script.
-#   Recommended: CUDA 11.8 or 12.x
-#   See: https://developer.nvidia.com/cuda-downloads
+
 
 set -e
 
